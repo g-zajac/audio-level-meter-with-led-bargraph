@@ -21,6 +21,13 @@ AudioConnection          patchCord1(adc1, fft1024_1);
 // AudioConnection objects do not have any functions.
 // They are simply created in your sketch, after the audio objects, to define the data flow between those objects.
 
+// some variables
+float magnitude = 0;
+float dB;
+
+long previousMillis = 0;
+long samplingInterval = 250;  //in ms
+
 void setup() {
   // put your setup code here, to run once:
 
@@ -33,7 +40,7 @@ void setup() {
   // The numberBlocks input specifies how much memory to reserve for audio data. Each block holds 128 audio samples
   AudioMemory(10);  // tested with AudioMemoryUsageMax()
 
-  // Configure the window algorithm to use
+  // Configure the window algorithm to use, for spectral leakage effect avoiding
   fft1024_1.windowFunction(AudioWindowHanning1024);
 
   Serial.begin(115200);
@@ -42,8 +49,46 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  //monitoring memory usage
-  Serial.print("Max audio mem used: ");
-  Serial.println(AudioMemoryUsageMax());
-  delay(1000);
+  //monitoring system usage
+  // Serial.print("Max audio mem used: ");
+  // Serial.print(AudioMemoryUsageMax());
+  // Serial.print(" cpu: ");
+  // Serial.println(AudioProcessorUsageMax());
+  // delay(500);
+
+  // FFT test, returns true each time the FFT analysis produces new output data.
+  // Serial.print("fft avaliable: ");
+  // Serial.println(fft1024_1.available());
+
+
+  // ---------  SPL from FFT -----------------------
+  // - apply window function (e.g. Hann or Hamming)
+  // - calculate FFT
+  // - calculate magnitude of FFT (sqrt(re*re+im*im))
+  // - convert magnitude to dB (20*log10(magnitude))
+
+  unsigned long currentMillis = millis();
+  if(currentMillis - previousMillis > samplingInterval) {
+    previousMillis = currentMillis;
+
+    if (fft1024_1.available()) {
+      float v[512] = {0};
+      magnitude = 0;
+
+      for (int i=0; i<512; i++){
+        v[i] = fft1024_1.read(i); // Read frequency bins. The result is scaled so 1.0 represents a full scale sine wave.
+        // The term bins is related to the result of the FFT, where every element in the result array is a bin.
+        // One can say this is the “resolution” of the FFT. Every bin represent a frequency interval, just like a histogram.
+        // The number of bins you get is half the amount of samples spanning the frequency range from zero to half the sampling rate
+        magnitude = magnitude + sq(v[i]); //
+      } // end of for
+
+      magnitude = sqrt(magnitude);
+      dB = log10f(magnitude) * 20  + 125.05;  // db = 20(log A/Aref)
+      Serial.print("db = ");
+      Serial.println(dB,2);
+    } // end of if fft
+
+  } // end of if millis
+
 }
