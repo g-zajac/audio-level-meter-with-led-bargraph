@@ -25,22 +25,22 @@ AudioConnection          patchCord1(adc1, fft1024_1);
 float magnitude = 0;
 float dB;
 
-long previousMillis = 0;
-long samplingInterval = 250;  //in ms
+unsigned long previousMillis = 0;
+unsigned long samplingInterval = 250;  //in ms
 
 void setup() {
   // put your setup code here, to run once:
 
   // ADC resolution defaults to 10 bits for Arduino compatibility.
   // https://www.arduino.cc/reference/en/language/functions/zero-due-mkr-family/analogreadresolution/
-  // set to 16bis
+  // set to 16bits
   analogReadResolution(16);
 
   // Allocate the memory for all audio connections.
   // The numberBlocks input specifies how much memory to reserve for audio data. Each block holds 128 audio samples
   AudioMemory(10);  // tested with AudioMemoryUsageMax()
 
-  // Configure the window algorithm to use, for spectral leakage effect avoiding
+  // Configure the window algorithm to use, for avoiding spectral leakage effect
   fft1024_1.windowFunction(AudioWindowHanning1024);
 
   Serial.begin(115200);
@@ -49,16 +49,13 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
+  // TODO add millis interval for sys info
   //monitoring system usage
   // Serial.print("Max audio mem used: ");
   // Serial.print(AudioMemoryUsageMax());
   // Serial.print(" cpu: ");
   // Serial.println(AudioProcessorUsageMax());
   // delay(500);
-
-  // FFT test, returns true each time the FFT analysis produces new output data.
-  // Serial.print("fft avaliable: ");
-  // Serial.println(fft1024_1.available());
 
 
   // ---------  SPL from FFT -----------------------
