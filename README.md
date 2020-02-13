@@ -1,2 +1,3 @@
-# led-bargraph-audio-level-display
-Neopixel bargraph showing SPL level, build on Teensy
+# audio-level-meter-with-led-bargraph
+
+This project is about measuring semi-calibrated [SPL](https://en.wikipedia.org/wiki/Sound_pressure#Sound_pressure_level) and displaying the value on 24 pixel led bar.
