@@ -26,7 +26,9 @@ float magnitude = 0;
 float dB;
 
 unsigned long previousMillis = 0;
-unsigned long samplingInterval = 250;  //in ms
+unsigned long samplingInterval = 100;  //in ms
+unsigned long previousMillis_monitoring = 0;
+unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
 void setup() {
   // put your setup code here, to run once:
@@ -49,13 +51,15 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  // TODO add millis interval for sys info
+  unsigned long currentMillis_monitoring = millis();
+  if(currentMillis_monitoring - previousMillis_monitoring > monitoringInterval) {
+    previousMillis_monitoring = currentMillis_monitoring;
   //monitoring system usage
-  // Serial.print("Max audio mem used: ");
-  // Serial.print(AudioMemoryUsageMax());
-  // Serial.print(" cpu: ");
-  // Serial.println(AudioProcessorUsageMax());
-  // delay(500);
+  Serial.print("Max audio mem used: ");
+  Serial.print(AudioMemoryUsageMax());
+  Serial.print(" cpu usage max: ");
+  Serial.println(AudioProcessorUsageMax());
+  }
 
 
   // ---------  SPL from FFT -----------------------
