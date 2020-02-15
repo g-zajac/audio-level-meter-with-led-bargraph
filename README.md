@@ -10,7 +10,7 @@ A sound is picked up with an electret microphone, processed and then SPL level c
 
 #### Input
 
-I used Adafruit MAX4466, modified as Pauls suggested in this **[thread](https://forum.pjrc.com/threads/40468-Help-with-Basic-Audio-Lib-results?p=126317&viewfull=1#post126317)** to match Teensy input levels. The preamp output is connected directly to the Teensy AD input.
+I used Adafruit MAX4466, modified as Pauls suggested in this [thread](https://forum.pjrc.com/threads/40468-Help-with-Basic-Audio-Lib-results?p=126317&viewfull=1#post126317) to match Teensy input levels. The preamp output is connected directly to the Teensy AD input.
 
 #### Microconroller
 I have choseen the Teensy platform as this project is focused on audio and power consumption is not so main factor. The [Teensy 3.2](https://www.pjrc.com/teensy/teensy31.html) has got 32bit Cortex-M4 ARM processor running on 72MHz, DMA and 16bit AD covnerter which makes it a perfect for this application IMHO.
@@ -57,8 +57,7 @@ CPU 65% so far, SPL only no neopixels yet
 ## Acknowledgments
 Big thanks for inspiration and sharing your knowledge and code:
 - [@PaulStoffregen](https://github.com/PaulStoffregen)
-- Thijs Schrama - [PJRC (Teensy) Forum:  Teensy 3.2 Sound Level Meter (sound measurement device) thread](https://forum.pjrc.com/threads/34371-Teensy-3-2-Sound-Level-Meter-(sound-measurement-device)
-
+- Thijs Schrama - PJRC (Teensy) Forum [thread](https://forum.pjrc.com/threads/34371-Teensy-3-2-Sound-Level-Meter-(sound-measurement-device)
 ## License
 This project is licensed under [MIT license](http://opensource.org/licenses/mit-license.php)
 
