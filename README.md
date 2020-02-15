@@ -52,7 +52,7 @@ Project configuration is set in platformio.ini where you can set up variuos envi
 Upload the compiled code to the Teensy, no programmer needed as has got build in USB and bootloader.
 
 ## Performance
-CPU 65% so far, SPL only no neopixels yet
+CPU 65%
 
 ## Acknowledgments
 Big thanks for inspiration and sharing your knowledge and code:
