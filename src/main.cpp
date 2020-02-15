@@ -90,15 +90,6 @@ void setup() {
 
   // set up neopixels
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
-
-  // neopixel test
-  // FastLED.setBrightness(brightness);
-  // leds[0] = CRGB::Red;
-  // leds[1] = CRGB::Green;
-  // leds[2] = CRGB::Blue;
-  // FastLED.show();
-
-  // display_on_bar(24);
 }
 
 void loop() {
