@@ -1,5 +1,12 @@
 #include <Arduino.h>
 
+// ------------------------------ Neopixels ------------------------------------
+#include <FastLED.h>
+#define NUM_LEDS 24
+#define DATA_PIN 6
+CRGB leds[NUM_LEDS];
+int brightness = 10; // 0-255
+
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
 // Coefficients are calculated in a python script based on formula: https://en.wikipedia.org/wiki/A-weighting
@@ -54,6 +61,16 @@ void setup() {
   fft1024_1.windowFunction(AudioWindowHanning1024);
 
   Serial.begin(115200);
+
+  // set up neopixels
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+
+  //neopixel test
+  FastLED.setBrightness(brightness);
+  leds[0] = CRGB::Red;
+  leds[1] = CRGB::Green;
+  leds[2] = CRGB::Blue;
+  FastLED.show();
 }
 
 void loop() {
