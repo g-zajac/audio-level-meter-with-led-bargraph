@@ -2,5 +2,4 @@
 .clang_complete
 .gcc-flags.json
 .DS_store
-/lib
 /notes
