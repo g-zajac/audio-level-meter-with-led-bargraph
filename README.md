@@ -57,7 +57,7 @@ CPU 65% so far, SPL only no neopixels yet
 ## Acknowledgments
 Big thanks for inspiration and sharing your knowledge and code:
 - [@PaulStoffregen](https://github.com/PaulStoffregen)
-- Thijs Schrama - PJRC (Teensy) Forum [thread](https://forum.pjrc.com/threads/34371-Teensy-3-2-Sound-Level-Meter-(sound-measurement-device)
+- Thijs Schrama - PJRC (Teensy) Forum [thread](https://forum.pjrc.com/threads/34371-Teensy-3-2-Sound-Level-Meter-(sound-measurement-device))
 ## License
 This project is licensed under [MIT license](http://opensource.org/licenses/mit-license.php)
 
