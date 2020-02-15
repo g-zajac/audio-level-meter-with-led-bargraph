@@ -1,5 +1,16 @@
 #include <Arduino.h>
 
+// ------------------------------ Neopixels ------------------------------------
+#include <FastLED.h>
+#define NUM_LEDS 24
+#define DATA_PIN 6
+CRGB leds[NUM_LEDS];
+int brightness = 10; // 0-255
+
+const int bar_brk_point_low = 12;
+const int bar_brk_point_high = 20;
+int level = 0;
+
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
 // Coefficients are calculated in a python script based on formula: https://en.wikipedia.org/wiki/A-weighting
@@ -37,6 +48,28 @@ unsigned long samplingInterval = 100;  //in ms
 unsigned long previousMillis_monitoring = 0;
 unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
+// function displaying a level on neopixel bargraph
+void display_on_bar(int level){
+  FastLED.setBrightness(brightness);
+
+  for(int dot = 0; dot < level; dot++){
+    if(dot>=0 && dot < bar_brk_point_low){
+      leds[dot] = CRGB::Green;
+    }
+    else if (dot >=bar_brk_point_low && dot < bar_brk_point_high){
+      leds[dot] = CRGB::Orange;
+    }
+    else if (dot >= bar_brk_point_high){
+      leds[dot] = CRGB::Red;
+    }
+  } // end of for
+
+  for(int i = level; i<=NUM_LEDS-1; i++){
+    leds[i] = CRGB::Black;
+  }
+  FastLED.show();
+}
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -54,6 +87,9 @@ void setup() {
   fft1024_1.windowFunction(AudioWindowHanning1024);
 
   Serial.begin(115200);
+
+  // set up neopixels
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 }
 
 void loop() {
@@ -111,6 +147,9 @@ void loop() {
       // TODO turn of or make conditional for producion
       Serial.print("db = ");
       Serial.println(dB,2);
+
+      level = map(dB,85,120,0,23);
+      display_on_bar(level);
     } // end of if fft
 
   } // end of if millis
