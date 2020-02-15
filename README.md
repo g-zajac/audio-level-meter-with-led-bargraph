@@ -25,7 +25,6 @@ To compute SPL, the microcontroller does:
 - calculates 1024 points FFT
 - applies A-weighting curve
 - compute the SPL using RMS value
-- outputs the SPL
 - map SPL level to 24 points bargraph
 
 ## Schematic
