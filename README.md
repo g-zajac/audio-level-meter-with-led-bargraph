@@ -26,6 +26,7 @@ To compute SPL, the microcontroller does:
 - applies A-weighting curve
 - compute the SPL using RMS value
 - outputs the SPL
+- map SPL level to 24 points bargraph
 
 ## Schematic
 _coming soon_
@@ -63,4 +64,4 @@ This project is licensed under [MIT license](http://opensource.org/licenses/mit-
 
 ## Project status
 - Hardware build in progress, prototyping.
-- Firmware under development, SPL code only, no neopixels added yet
+- Firmware under development.
