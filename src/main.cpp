@@ -7,6 +7,9 @@
 CRGB leds[NUM_LEDS];
 int brightness = 10; // 0-255
 
+const int bar_brk_point_low = 12;
+const int bar_brk_point_high = 20;
+
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
 // Coefficients are calculated in a python script based on formula: https://en.wikipedia.org/wiki/A-weighting
@@ -44,6 +47,26 @@ unsigned long samplingInterval = 100;  //in ms
 unsigned long previousMillis_monitoring = 0;
 unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
+// function displaying a level on neopixel bargraph
+void display_on_bar(int level){
+  for(int dot = 0; dot < level; dot++){
+    if(dot>=0 && dot < bar_brk_point_low){
+      leds[dot] = CRGB::Green;
+    }
+    else if (dot >=bar_brk_point_low && dot < bar_brk_point_high){
+      leds[dot] = CRGB::Orange;
+    }
+    else if (dot >= bar_brk_point_high){
+      leds[dot] = CRGB::Red;
+    }
+  } // end of for
+  for(int i = level; i<=NUM_LEDS; i++){
+    leds[i] = CRGB::Black;
+  }
+  FastLED.setBrightness(brightness);
+  FastLED.show();
+}
+
 
 void setup() {
   // put your setup code here, to run once:
@@ -66,11 +89,13 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 
   //neopixel test
-  FastLED.setBrightness(brightness);
-  leds[0] = CRGB::Red;
-  leds[1] = CRGB::Green;
-  leds[2] = CRGB::Blue;
-  FastLED.show();
+  // FastLED.setBrightness(brightness);
+  // leds[0] = CRGB::Red;
+  // leds[1] = CRGB::Green;
+  // leds[2] = CRGB::Blue;
+  // FastLED.show();
+
+  display_on_bar(24);
 }
 
 void loop() {
