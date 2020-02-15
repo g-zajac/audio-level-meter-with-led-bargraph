@@ -9,6 +9,7 @@ int brightness = 10; // 0-255
 
 const int bar_brk_point_low = 12;
 const int bar_brk_point_high = 20;
+int level = 0;
 
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
@@ -49,6 +50,8 @@ unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
 // function displaying a level on neopixel bargraph
 void display_on_bar(int level){
+  FastLED.setBrightness(brightness);
+
   for(int dot = 0; dot < level; dot++){
     if(dot>=0 && dot < bar_brk_point_low){
       leds[dot] = CRGB::Green;
@@ -60,10 +63,10 @@ void display_on_bar(int level){
       leds[dot] = CRGB::Red;
     }
   } // end of for
-  for(int i = level; i<=NUM_LEDS; i++){
+
+  for(int i = level; i<=NUM_LEDS-1; i++){
     leds[i] = CRGB::Black;
   }
-  FastLED.setBrightness(brightness);
   FastLED.show();
 }
 
@@ -88,14 +91,14 @@ void setup() {
   // set up neopixels
   FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
 
-  //neopixel test
+  // neopixel test
   // FastLED.setBrightness(brightness);
   // leds[0] = CRGB::Red;
   // leds[1] = CRGB::Green;
   // leds[2] = CRGB::Blue;
   // FastLED.show();
 
-  display_on_bar(24);
+  // display_on_bar(24);
 }
 
 void loop() {
@@ -153,6 +156,9 @@ void loop() {
       // TODO turn of or make conditional for producion
       Serial.print("db = ");
       Serial.println(dB,2);
+
+      level = map(dB,85,120,0,23);
+      display_on_bar(level);
     } // end of if fft
 
   } // end of if millis
