@@ -2,13 +2,20 @@
 
 // ------------------------------ Neopixels ------------------------------------
 #include <FastLED.h>
-#define NUM_LEDS 24
-#define DATA_PIN 6
-CRGB leds[NUM_LEDS];
-int brightness = 10; // 0-255
+#define NUM_STRIPS 2
+#define NUM_LEDS 32
+#define DATA_PIN_EXTERNAL_LEDS 6
+#define DATA_PIN_INTERNAL_LEDS 7
 
-const int bar_brk_point_low = 12;
-const int bar_brk_point_high = 20;
+CRGB leds[NUM_LEDS];
+// add controllers for separate brightness managment
+CLEDController *controllers[NUM_STRIPS];
+
+uint8_t external_leds_brightness = 200; // 0-255
+uint8_t internal_leds_brightness = 30;
+
+const int bar_brk_point_low = 10;
+const int bar_brk_point_high = 16;
 int level = 0;
 
 // -------------------------   A-weight coefficients ---------------------------
@@ -50,7 +57,7 @@ unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
 // function displaying a level on neopixel bargraph
 void display_on_bar(int level){
-  FastLED.setBrightness(brightness);
+  // FastLED.setBrightness(brightness);
 
   for(int dot = 0; dot < level; dot++){
     if(dot>=0 && dot < bar_brk_point_low){
@@ -67,7 +74,8 @@ void display_on_bar(int level){
   for(int i = level; i<=NUM_LEDS-1; i++){
     leds[i] = CRGB::Black;
   }
-  FastLED.show();
+  controllers[0]->showLeds(internal_leds_brightness);
+  controllers[1]->showLeds(external_leds_brightness);
 }
 
 
@@ -89,7 +97,13 @@ void setup() {
   Serial.begin(115200);
 
   // set up neopixels
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  controllers[0] = &FastLED.addLeds<NEOPIXEL, DATA_PIN_INTERNAL_LEDS>(leds, NUM_LEDS);
+  controllers[1] = &FastLED.addLeds<WS2811, DATA_PIN_EXTERNAL_LEDS>(leds, NUM_LEDS);
+
+  // test
+  delay(100);
+  display_on_bar(32);
+  delay(3000);
 }
 
 void loop() {
@@ -98,11 +112,11 @@ void loop() {
   unsigned long currentMillis_monitoring = millis();
   if(currentMillis_monitoring - previousMillis_monitoring > monitoringInterval) {
     previousMillis_monitoring = currentMillis_monitoring;
-  //monitoring system usage
-  Serial.print("Max audio mem used: ");
-  Serial.print(AudioMemoryUsageMax());
-  Serial.print(" cpu usage max: ");
-  Serial.println(AudioProcessorUsageMax());
+    //monitoring system usage
+    Serial.print("Max audio mem used: ");
+    Serial.print(AudioMemoryUsageMax());
+    Serial.print(" cpu usage max: ");
+    Serial.println(AudioProcessorUsageMax());
   }
 
 
@@ -148,7 +162,7 @@ void loop() {
       Serial.print("db = ");
       Serial.println(dB,2);
 
-      level = map(dB,85,120,0,23);
+      level = map(dB,85,120,0,31);
       display_on_bar(level);
     } // end of if fft
 
