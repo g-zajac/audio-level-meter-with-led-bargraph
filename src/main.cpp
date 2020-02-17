@@ -11,12 +11,16 @@ CRGB leds[NUM_LEDS];
 // add controllers for separate brightness managment
 CLEDController *controllers[NUM_STRIPS];
 
-uint8_t external_leds_brightness = 200; // 0-255
-uint8_t internal_leds_brightness = 30;
+uint8_t external_leds_brightness = 100; // 0-255
+uint8_t internal_leds_brightness = 10;
 
 const int bar_brk_point_low = 10;
 const int bar_brk_point_high = 16;
+
 int level = 0;
+int levelOnBar = 0;
+
+int barSpeed = 20;
 
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
@@ -56,28 +60,39 @@ unsigned long previousMillis_monitoring = 0;
 unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
 // function displaying a level on neopixel bargraph
-void display_on_bar(int level){
-  // FastLED.setBrightness(brightness);
+void display_on_bar(int newLevel){
+  if (newLevel > 32) { newLevel = 32; }
 
-  for(int dot = 0; dot < level; dot++){
-    if(dot>=0 && dot < bar_brk_point_low){
-      leds[dot] = CRGB::Green;
+  if (newLevel < levelOnBar){
+    // Serial.println("newLevel < levelOnBar");
+    for (int dot = levelOnBar-1; dot >= newLevel; dot-- ){
+      leds[dot] = CRGB::Black;
+      controllers[0]->showLeds(internal_leds_brightness);
+      controllers[1]->showLeds(external_leds_brightness);
+      delay(barSpeed);
     }
-    else if (dot >=bar_brk_point_low && dot < bar_brk_point_high){
-      leds[dot] = CRGB::Orange;
-    }
-    else if (dot >= bar_brk_point_high){
-      leds[dot] = CRGB::Red;
-    }
-  } // end of for
-
-  for(int i = level; i<=NUM_LEDS-1; i++){
-    leds[i] = CRGB::Black;
+    levelOnBar = newLevel;
   }
-  controllers[0]->showLeds(internal_leds_brightness);
-  controllers[1]->showLeds(external_leds_brightness);
-}
+  else if (newLevel > levelOnBar){
+      // Serial.println("newLevel > levelOnBar");
+      for (int dot = levelOnBar; dot < newLevel; dot ++){
+        if(dot>=0 && dot < bar_brk_point_low){
+          leds[dot] = CRGB::Green;
+        }
+        else if (dot >=bar_brk_point_low && dot < bar_brk_point_high){
+          leds[dot] = CRGB::Orange;
+        }
+        else if (dot >= bar_brk_point_high){
+          leds[dot] = CRGB::Red;
+        }
+        controllers[0]->showLeds(internal_leds_brightness);
+        controllers[1]->showLeds(external_leds_brightness);
+        delay(barSpeed);
+      }
+      levelOnBar = newLevel;
 
+  }
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -101,8 +116,13 @@ void setup() {
   controllers[1] = &FastLED.addLeds<WS2811, DATA_PIN_EXTERNAL_LEDS>(leds, NUM_LEDS);
 
   // test
-  delay(100);
+  delay(3000);
+  Serial.print("levelOnBar="); Serial.println(levelOnBar);
   display_on_bar(32);
+  Serial.print("levelOnBar="); Serial.println(levelOnBar);
+  delay(1000);
+  display_on_bar(0);
+  Serial.print("levelOnBar="); Serial.println(levelOnBar);
   delay(3000);
 }
 
@@ -162,7 +182,8 @@ void loop() {
       Serial.print("db = ");
       Serial.println(dB,2);
 
-      level = map(dB,85,120,0,31);
+      // level = map(dB,85,120,0,31);
+      level = map(dB,85,100,0,31); // for quiet tests
       display_on_bar(level);
     } // end of if fft
 
