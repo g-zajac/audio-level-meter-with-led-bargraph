@@ -1,6 +1,7 @@
 #include <Arduino.h>
 
 #define DIP_SWITCH 2 // dip switch 02
+#define BUILDIN_LED 13
 
 // external AD for pots
 #include <Wire.h>
@@ -152,6 +153,7 @@ void setup() {
   ads.setGain(GAIN_TWOTHIRDS); // min -2, max 28306
 
   pinMode(DIP_SWITCH, INPUT_PULLUP);
+  pinMode(BUILDIN_LED, OUTPUT);
 
   // test
   delay(5000);
@@ -162,6 +164,8 @@ void setup() {
   display_on_bar(0);
   Serial.print("levelOnBar="); Serial.println(levelOnBar);
   delay(3000);
+
+  digitalWrite(BUILDIN_LED, HIGH);
 }
 
 void loop() {
