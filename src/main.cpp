@@ -14,13 +14,17 @@ CLEDController *controllers[NUM_STRIPS];
 uint8_t external_leds_brightness = 100; // 0-255
 uint8_t internal_leds_brightness = 10;
 
-const int bar_brk_point_low = 10;
-const int bar_brk_point_high = 16;
+const int bar_brk_point_low = 18;
+const int bar_brk_point_high = 28;
 
 int level = 0;
 int levelOnBar = 0;
-
-int barSpeed = 20;
+int peakLevel = 0;
+int previousPeakLevel = 0;
+int barSpeed = 10;
+bool peakFadeing = false;
+unsigned long peakFadeTime = 250;
+unsigned long peakPreviousTime = 0;
 
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
@@ -61,21 +65,24 @@ unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
 // function displaying a level on neopixel bargraph
 void display_on_bar(int newLevel){
-  if (newLevel > 32) { newLevel = 32; }
+  if (newLevel > 31) { newLevel = 31; }
 
-  if (newLevel < levelOnBar){
-    // Serial.println("newLevel < levelOnBar");
-    for (int dot = levelOnBar-1; dot >= newLevel; dot-- ){
-      leds[dot] = CRGB::Black;
-      controllers[0]->showLeds(internal_leds_brightness);
-      controllers[1]->showLeds(external_leds_brightness);
-      delay(barSpeed);
-    }
-    levelOnBar = newLevel;
-  }
-  else if (newLevel > levelOnBar){
-      // Serial.println("newLevel > levelOnBar");
-      for (int dot = levelOnBar; dot < newLevel; dot ++){
+  // if (newLevel > peakLevel){
+  //   peakLevel = newLevel;
+  //   peakFadeing = false;
+  // } else {
+  //   unsigned long currentPeakTimer = millis();
+  //   if (currentPeakTimer - peakPreviousTime > peakFadeTime) {
+  //     peakPreviousTime = currentPeakTimer;
+  //     Serial.println("peak fadeing");
+  //     previousPeakLevel = peakLevel;
+  //     peakLevel--;
+  //     peakFadeing = true;
+  //   }
+  // }
+
+  if (newLevel > levelOnBar){
+      for (int dot = levelOnBar; dot <= newLevel; dot ++){
         if(dot>=0 && dot < bar_brk_point_low){
           leds[dot] = CRGB::Green;
         }
@@ -85,12 +92,31 @@ void display_on_bar(int newLevel){
         else if (dot >= bar_brk_point_high){
           leds[dot] = CRGB::Red;
         }
+
         controllers[0]->showLeds(internal_leds_brightness);
         controllers[1]->showLeds(external_leds_brightness);
         delay(barSpeed);
       }
+      // if (!peakFadeing){ leds[peakLevel] = CRGB::Blue; }
+      // leds[peakLevel] = CRGB::Purple;
+      // controllers[0]->showLeds(internal_leds_brightness);
+      // controllers[1]->showLeds(external_leds_brightness);
+
       levelOnBar = newLevel;
 
+  } else if (newLevel < levelOnBar){
+    for (int dot = levelOnBar; dot >= newLevel; dot-- ){
+      leds[dot] = CRGB::Black;
+      // if (peakFadeing) {
+      // leds[previousPeakLevel] = CRGB::Black;
+      // leds[peakLevel] = CRGB::Purple;
+
+      // }
+      controllers[0]->showLeds(internal_leds_brightness);
+      controllers[1]->showLeds(external_leds_brightness);
+      delay(barSpeed);
+    }
+    levelOnBar = newLevel;
   }
 }
 
@@ -116,9 +142,9 @@ void setup() {
   controllers[1] = &FastLED.addLeds<WS2811, DATA_PIN_EXTERNAL_LEDS>(leds, NUM_LEDS);
 
   // test
-  delay(3000);
+  delay(5000);
   Serial.print("levelOnBar="); Serial.println(levelOnBar);
-  display_on_bar(32);
+  display_on_bar(31);
   Serial.print("levelOnBar="); Serial.println(levelOnBar);
   delay(1000);
   display_on_bar(0);
@@ -129,15 +155,16 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
 
-  unsigned long currentMillis_monitoring = millis();
-  if(currentMillis_monitoring - previousMillis_monitoring > monitoringInterval) {
-    previousMillis_monitoring = currentMillis_monitoring;
-    //monitoring system usage
-    Serial.print("Max audio mem used: ");
-    Serial.print(AudioMemoryUsageMax());
-    Serial.print(" cpu usage max: ");
-    Serial.println(AudioProcessorUsageMax());
-  }
+  // add ifdef DEBUG, turn off for production
+  // unsigned long currentMillis_monitoring = millis();
+  // if(currentMillis_monitoring - previousMillis_monitoring > monitoringInterval) {
+  //   previousMillis_monitoring = currentMillis_monitoring;
+  //   //monitoring system usage
+  //   Serial.print("Max audio mem used: ");
+  //   Serial.print(AudioMemoryUsageMax());
+  //   Serial.print(" cpu usage max: ");
+  //   Serial.println(AudioProcessorUsageMax());
+  // }
 
 
   // ---------  SPL algorithm with A-weight -----------------------
@@ -183,8 +210,17 @@ void loop() {
       Serial.println(dB,2);
 
       // level = map(dB,85,120,0,31);
-      level = map(dB,85,100,0,31); // for quiet tests
+      level = map(dB,70,130,0,31); // for quiet tests
+      Serial.print("led level = ");
+      Serial.println(level);
+
       display_on_bar(level);
+
+      // Serial.print("peakLevel = ");
+      // Serial.println(peakLevel);
+      // displayPeak(peakLevel);
+
+
     } // end of if fft
 
   } // end of if millis
