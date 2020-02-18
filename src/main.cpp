@@ -1,5 +1,12 @@
 #include <Arduino.h>
 
+#define DIP_SWITCH 2 // dip switch 02
+
+// external AD for pots
+#include <Wire.h>
+#include <Adafruit_ADS1015.h>
+Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
+
 // ------------------------------ Neopixels ------------------------------------
 #include <FastLED.h>
 #define NUM_STRIPS 2
@@ -141,6 +148,11 @@ void setup() {
   controllers[0] = &FastLED.addLeds<NEOPIXEL, DATA_PIN_INTERNAL_LEDS>(leds, NUM_LEDS);
   controllers[1] = &FastLED.addLeds<WS2811, DATA_PIN_EXTERNAL_LEDS>(leds, NUM_LEDS);
 
+  ads.begin();
+  ads.setGain(GAIN_TWOTHIRDS); // min -2, max 28306
+
+  pinMode(DIP_SWITCH, INPUT_PULLUP);
+
   // test
   delay(5000);
   Serial.print("levelOnBar="); Serial.println(levelOnBar);
@@ -154,6 +166,15 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
+
+  Serial.write("dip switch: "); Serial.println(digitalRead(DIP_SWITCH));
+
+  int16_t adc0, adc1;
+  adc0 = ads.readADC_SingleEnded(0);
+  adc1 = ads.readADC_SingleEnded(1);
+  Serial.print("AIN0: "); Serial.println(adc0);
+  Serial.print("AIN1: "); Serial.println(adc1);
+  delay(250);
 
   // add ifdef DEBUG, turn off for production
   // unsigned long currentMillis_monitoring = millis();
