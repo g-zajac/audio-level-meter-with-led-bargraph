@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#define serial_debuging
+
 #define DIP_SWITCH_TEST 2 // dip switch pin
 #define BUILDIN_LED 13
 
@@ -20,22 +22,23 @@ CRGB leds[NUM_LEDS];
 // add controllers for separate brightness managment
 CLEDController *controllers[NUM_STRIPS];
 
-// initial brightness before updated with pots
+// initial brightness before updated from pots
 uint8_t external_leds_brightness = 50; // 0-255
 uint8_t internal_leds_brightness = 50;
 
-// braking bargraph color points
+// braking bargraph color points [green -> LOW <- orange -> HIGH <- red]
 const int bar_brk_point_low = 18;
 const int bar_brk_point_high = 28;
 
-int level = 0;
+int level = 0;            //bargraph level maped from SPL
 int levelOnBar = 0;
 int peakLevel = 0;
 int barSpeed = 10;  // 10ms?
 
-unsigned long peakFadeTime = 1*1000;  // 3 secs ?
+unsigned long peakFadeTime = 3*1000;  // 3 secs ?
 unsigned long peakPreviousTime = 0;
 
+// pixel defined colors
 // https://github.com/FastLED/FastLED/wiki/Pixel-reference
 // Tomato, Maroon. DarkMagenta
 #define PEAK_COLOR DarkRed;
@@ -70,11 +73,10 @@ float dB;
 unsigned long previousMillis = 0;
 unsigned long samplingInterval = 100;  //in ms
 unsigned long previousMillis_monitoring = 0;
-unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
-// TODO remove monitoring
 bool test_switch_position = 0;
-// ***************************** FUNCTIONS *************************************
 
+
+// ***************************** FUNCTIONS *************************************
 
 // function displaying a level on neopixel bargraph
 void display_on_bar(int newLevel){
@@ -82,8 +84,7 @@ void display_on_bar(int newLevel){
   if (newLevel <0){ newLevel = 0; }
   if (newLevel > 31) { newLevel = 31; }
 
-  Serial.print("new Level: "); Serial.println(newLevel);
-
+  // level going up
   if (newLevel > levelOnBar){
       for (int dot = levelOnBar; dot <= newLevel; dot ++){
         if(dot>=0 && dot < bar_brk_point_low){
@@ -101,6 +102,7 @@ void display_on_bar(int newLevel){
       }
       levelOnBar = newLevel;
 
+  // level going down
   } else if (newLevel < levelOnBar){
     for (int dot = levelOnBar; dot >= newLevel; dot-- ){
       leds[dot] = CRGB::Black;
@@ -118,10 +120,8 @@ void display_on_bar(int newLevel){
 // -----------------  peak dot --------------------
 
   if (newLevel >= peakLevel){
-    // leds[peakLevel] = CRGB::Black;
     peakLevel = newLevel;
-    // peakFadeing = false;
-    // peakPreviousTime = millis();
+
     leds[peakLevel] = CRGB::PEAK_COLOR;
     controllers[0]->showLeds(internal_leds_brightness);
     controllers[1]->showLeds(external_leds_brightness);
@@ -141,7 +141,6 @@ void display_on_bar(int newLevel){
       controllers[1]->showLeds(external_leds_brightness);
     }
   }
-
 }
 
 void update_brightness_from_pots(){
@@ -189,20 +188,25 @@ void measure_spl(){
 
     magnitude = sqrt(magnitude);
     dB = (log10f(magnitude) * 20  + 96);  // db = 20(log A/Aref)
-    // TODO turn of or make conditional for producion
-    Serial.print("db = ");
-    Serial.println(dB,2);
+
+    #ifdef serial_debuging
+      Serial.print("db = ");
+      Serial.print(dB,2);
+    #endif
 
 //************************************************************************************************************************************
     level = map(dB,56,99,0,31);
 //************************************************************************************************************************************
 
-    Serial.print("level = ");
-    Serial.print(level);
-    Serial.print(" peak level = ");
-    Serial.println(peakLevel);
+    #ifdef serial_debuging
+      Serial.print(" | bargraph level = ");
+      Serial.print(level);
+      Serial.print(" | peak dot level = ");
+      Serial.println(peakLevel);
+    #endif
 
     display_on_bar(level);
+
   } // end of if fft
 }
 
@@ -223,7 +227,9 @@ void setup() {
   // Configure the window algorithm to use for avoiding spectral leakage effect
   fft1024_1.windowFunction(AudioWindowHanning1024);
 
-  Serial.begin(115200);
+  #ifdef serial_debuging
+    Serial.begin(115200);
+  #endif
 
   // set up neopixels
   controllers[0] = &FastLED.addLeds<NEOPIXEL, DATA_PIN_INTERNAL_LEDS>(leds, NUM_LEDS);
