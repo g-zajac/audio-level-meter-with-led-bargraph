@@ -2,11 +2,11 @@
 
 # Audio SPL level meter with led bargraph
 
-This project is about measuring semi-calibrated [SPL](https://en.wikipedia.org/wiki/Sound_pressure#Sound_pressure_level) and displaying the value on 24 pixel led bar.
+This project is about measuring semi-calibrated [SPL](https://en.wikipedia.org/wiki/Sound_pressure#Sound_pressure_level) and displaying the value on two led bars 32 pixels each with separate brightness managment.
 
 ## About The project
 
-A sound is picked up with an electret microphone, processed and then SPL level calculated and mapped to a led bar.
+A sound is picked up with an electret microphone, processed and then SPL level calculated and mapped to a led bars.
 
 #### Input
 
@@ -14,9 +14,15 @@ I used Adafruit MAX4466, modified as Pauls suggested in this [thread](https://fo
 
 #### Microconroller
 I have choseen the Teensy platform as this project is focused on audio and power consumption is not so main factor. The [Teensy 3.2](https://www.pjrc.com/teensy/teensy31.html) has got 32bit Cortex-M4 ARM processor running on 72MHz, DMA and 16bit AD covnerter which makes it a perfect for this application IMHO.
+The only drawback I have discovered during prototyping is that it is not possible to use analogRead on other Teensy AD inputs while using audio library.
 
 #### Output
 Neopixel tape is connected via 74HCT245 buffer.
+
+#### Construction
+
+All components soldered on universal PCB. Two pots are for brightness adjustment, dip switch for optional test mode. On bottom, power supply in, and two cat5 for two LED strips. The Cat5 delivers data and power.
+![logo](doc/prototype.jpg)
 
 ## How It Works
 To compute SPL, the microcontroller does:
@@ -25,7 +31,7 @@ To compute SPL, the microcontroller does:
 - calculates 1024 points FFT
 - applies A-weighting curve
 - compute the SPL using RMS value
-- map SPL level to 24 points bargraph
+- map SPL level to 32 points bargraph
 
 ## Schematic
 _coming soon_
