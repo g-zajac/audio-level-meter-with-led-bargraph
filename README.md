@@ -40,7 +40,7 @@ _coming soon_
 ## Built With
 * [Atom](https://atom.io) - An amazing text editor
 * [PlatformIO](https://platformio.org) - An ecosystem for embedded development
-* [Audio System Design Tool for Teensy Audio Library](https://www.pjrc.com/teensy/gui/) - drag and drop tool for quick implementation an sudio system
+* [Audio System Design Tool for Teensy Audio Library](https://www.pjrc.com/teensy/gui/) - drag and drop tool for quick implementation an audio system
 * [Teensy Loader Application](https://www.pjrc.com/teensy/loader.html) - for uploading firmware to Teensy microcontroler
 
 ## Usage / Prerequisites
@@ -70,5 +70,5 @@ Big thanks for inspiration and sharing your knowledge and code:
 This project is licensed under [MIT license](http://opensource.org/licenses/mit-license.php)
 
 ## Project status
-- Hardware build in progress, prototyping.
+- Prototype built, testing
 - Firmware under development.
