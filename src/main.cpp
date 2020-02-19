@@ -30,12 +30,13 @@ const int bar_brk_point_high = 28;
 
 int level = 0;
 int levelOnBar = 0;
-// int peakLevel = 0;
-// int previousPeakLevel = 0;
+int peakLevel = 0;
+int fadeingPeakLevel = 0;
 int barSpeed = 10;
 // bool peakFadeing = false;
-// unsigned long peakFadeTime = 250;
-// unsigned long peakPreviousTime = 0;
+unsigned long peakFadeTime = 3*1000;
+unsigned long peakPreviousTime = 0;
+#define PEAK_COLOR DarkRed;
 
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
@@ -69,26 +70,13 @@ unsigned long samplingInterval = 100;  //in ms
 unsigned long previousMillis_monitoring = 0;
 unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
 
+bool test_switch_position = 0;
 // ***************************** FUNCTIONS *************************************
 
 
 // function displaying a level on neopixel bargraph
 void display_on_bar(int newLevel){
   if (newLevel > 31) { newLevel = 31; }
-
-  // if (newLevel > peakLevel){
-  //   peakLevel = newLevel;
-  //   peakFadeing = false;
-  // } else {
-  //   unsigned long currentPeakTimer = millis();
-  //   if (currentPeakTimer - peakPreviousTime > peakFadeTime) {
-  //     peakPreviousTime = currentPeakTimer;
-  //     Serial.println("peak fadeing");
-  //     previousPeakLevel = peakLevel;
-  //     peakLevel--;
-  //     peakFadeing = true;
-  //   }
-  // }
 
   if (newLevel > levelOnBar){
       for (int dot = levelOnBar; dot <= newLevel; dot ++){
@@ -101,32 +89,48 @@ void display_on_bar(int newLevel){
         else if (dot >= bar_brk_point_high){
           leds[dot] = CRGB::Red;
         }
-
         controllers[0]->showLeds(internal_leds_brightness);
         controllers[1]->showLeds(external_leds_brightness);
         delay(barSpeed);
       }
-      // if (!peakFadeing){ leds[peakLevel] = CRGB::Blue; }
-      // leds[peakLevel] = CRGB::Purple;
-      // controllers[0]->showLeds(internal_leds_brightness);
-      // controllers[1]->showLeds(external_leds_brightness);
-
       levelOnBar = newLevel;
 
   } else if (newLevel < levelOnBar){
     for (int dot = levelOnBar; dot >= newLevel; dot-- ){
       leds[dot] = CRGB::Black;
-      // if (peakFadeing) {
-      // leds[previousPeakLevel] = CRGB::Black;
-      // leds[peakLevel] = CRGB::Purple;
-
-      // }
       controllers[0]->showLeds(internal_leds_brightness);
       controllers[1]->showLeds(external_leds_brightness);
       delay(barSpeed);
     }
     levelOnBar = newLevel;
+  } // end of level on bar if
+
+// -----------------  peak dot --------------------
+  if (newLevel >= peakLevel){
+    // leds[peakLevel] = CRGB::Black;
+    peakLevel = newLevel+1;
+    // peakFadeing = false;
+    // peakPreviousTime = millis();
+    leds[peakLevel] = CRGB::PEAK_COLOR;
+    controllers[0]->showLeds(internal_leds_brightness);
+    controllers[1]->showLeds(external_leds_brightness);
+
+  } else {
+    unsigned long currentPeakTimer = millis();
+    if (currentPeakTimer - peakPreviousTime > peakFadeTime) {
+      peakPreviousTime = currentPeakTimer;
+
+      if (peakLevel > levelOnBar){
+        leds[peakLevel] = CRGB::Black;
+        peakLevel--;
+      }
+
+      leds[peakLevel] = CRGB::PEAK_COLOR;
+      controllers[0]->showLeds(internal_leds_brightness);
+      controllers[1]->showLeds(external_leds_brightness);
+    }
   }
+
 }
 
 void update_brightness_from_pots(){
@@ -178,16 +182,11 @@ void measure_spl(){
     Serial.print("db = ");
     Serial.println(dB,2);
 
-    // level = map(dB,85,120,0,31);
-    level = map(dB,70,130,0,31); // for quiet tests
+    level = map(dB,70,122,0,31); // for quiet tests
     Serial.print("led level = ");
     Serial.println(level);
 
     display_on_bar(level);
-
-    // Serial.print("peakLevel = ");
-    // Serial.println(peakLevel);
-    // displayPeak(peakLevel);
   } // end of if fft
 }
 
@@ -227,20 +226,20 @@ void setup() {
 }
 
 void loop() {
-  if(digitalRead(DIP_SWITCH_TEST)){
-    // dip switch set @ 0 (HIGH) normal mode
+  // value invertet because pullup input, HIGH state when dipswitch set @0, LOW when @ 1
+  test_switch_position = !(digitalRead(DIP_SWITCH_TEST));
 
-    update_brightness_from_pots();
-
+  if(test_switch_position == 0){
+    // normal mode
     unsigned long currentMillis = millis();
     if(currentMillis - previousMillis > samplingInterval) {
       previousMillis = currentMillis;
+      update_brightness_from_pots();
       measure_spl();
     } // end of if millis
   } else {
-    // dip switch set @ 1 (LOW) test mode
+    // test mode
     update_brightness_from_pots();
-
     display_on_bar(31);
     controllers[0]->showLeds(internal_leds_brightness);
     controllers[1]->showLeds(external_leds_brightness);
