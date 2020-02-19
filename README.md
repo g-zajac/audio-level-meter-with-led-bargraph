@@ -2,7 +2,7 @@
 
 # Audio SPL level meter with led bargraph
 
-This project is about measuring semi-calibrated [SPL](https://en.wikipedia.org/wiki/Sound_pressure#Sound_pressure_level) and displaying the value on two led bars 32 pixels each with separate brightness managment.
+This project is about measuring semi-calibrated [SPL](https://en.wikipedia.org/wiki/Sound_pressure#Sound_pressure_level) and displaying the value on two led bars 32 pixels each with separate brightness management.
 
 ## About The project
 
@@ -10,18 +10,19 @@ A sound is picked up with an electret microphone, processed and then SPL level c
 
 #### Input
 
-I used Adafruit MAX4466, modified as Pauls suggested in this [thread](https://forum.pjrc.com/threads/40468-Help-with-Basic-Audio-Lib-results?p=126317&viewfull=1#post126317) to match Teensy input levels. The preamp output is connected directly to the Teensy AD input.
+I used Adafruit MAX4466, modified as Pauls suggested in this __[thread](https://forum.pjrc.com/threads/40468-Help-with-Basic-Audio-Lib-results?p=126317&viewfull=1#post126317)__ to match Teensy input levels. The preamp output is connected directly to the Teensy AD input.
 
 #### Microconroller
-I have choseen the Teensy platform as this project is focused on audio and power consumption is not so main factor. The [Teensy 3.2](https://www.pjrc.com/teensy/teensy31.html) has got 32bit Cortex-M4 ARM processor running on 72MHz, DMA and 16bit AD covnerter which makes it a perfect for this application IMHO.
-The only drawback I have discovered during prototyping is that it is not possible to use analogRead on other Teensy AD inputs while using audio library.
+I have chosen the Teensy platform as this project is focused on audio and power consumption is not so main factor. The [Teensy 3.2](https://www.pjrc.com/teensy/teensy31.html) has got 32bit Cortex-M4 ARM processor running on 72MHz, DMA and 16bit AD converter which makes it a perfect for this application IMHO.
+The only drawback I have discovered during prototyping is that it is not possible to use analogRead on other AD inputs while using audio library.
 
 #### Output
-Neopixel tape is connected via 74HCT245 buffer.
+Neopixels tapes are connected via 74HCT245 buffer.
 
 #### Construction
 
-All components soldered on universal PCB. Two pots are for brightness adjustment, dip switch for optional test mode. On bottom, power supply in, and two cat5 for two LED strips. The Cat5 delivers data and power.
+All components soldered on universal PCB. Two pots are for manual brightness adjustment, dip switch for optional test mode. On bottom, power supply input and two cat5 for LED strips. The Cat5 delivers data and power to each of the LED stripes.
+
 ![logo](doc/prototype.jpg)
 
 ## How It Works
@@ -43,7 +44,7 @@ _coming soon_
 * [Teensy Loader Application](https://www.pjrc.com/teensy/loader.html) - for uploading firmware to Teensy microcontroler
 
 ## Usage / Prerequisites
-Build circuit acording to schematic (comming soon once prototype is tested and finalized).
+Build circuit according to schematic (coming soon once prototype is tested and finalised).
 
 Clone the repository to a local folder
 ```bash
@@ -64,6 +65,7 @@ CPU 65%
 Big thanks for inspiration and sharing your knowledge and code:
 - [@PaulStoffregen](https://github.com/PaulStoffregen)
 - Thijs Schrama - PJRC (Teensy) Forum [thread](https://forum.pjrc.com/threads/34371-Teensy-3-2-Sound-Level-Meter-(sound-measurement-device))
+
 ## License
 This project is licensed under [MIT license](http://opensource.org/licenses/mit-license.php)
 
