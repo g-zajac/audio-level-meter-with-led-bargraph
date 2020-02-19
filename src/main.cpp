@@ -35,6 +35,9 @@ int barSpeed = 10;  // 10ms?
 
 unsigned long peakFadeTime = 1*1000;  // 3 secs ?
 unsigned long peakPreviousTime = 0;
+
+// https://github.com/FastLED/FastLED/wiki/Pixel-reference
+// Tomato, Maroon. DarkMagenta
 #define PEAK_COLOR DarkRed;
 
 // -------------------------   A-weight coefficients ---------------------------
@@ -101,6 +104,10 @@ void display_on_bar(int newLevel){
   } else if (newLevel < levelOnBar){
     for (int dot = levelOnBar; dot >= newLevel; dot-- ){
       leds[dot] = CRGB::Black;
+
+      // do not black the peak dot
+      leds[peakLevel] = CRGB::PEAK_COLOR;
+
       controllers[0]->showLeds(internal_leds_brightness);
       controllers[1]->showLeds(external_leds_brightness);
       delay(barSpeed);
@@ -183,13 +190,16 @@ void measure_spl(){
     magnitude = sqrt(magnitude);
     dB = (log10f(magnitude) * 20  + 96);  // db = 20(log A/Aref)
     // TODO turn of or make conditional for producion
-    // Serial.print("db = ");
-    // Serial.println(dB,2);
+    Serial.print("db = ");
+    Serial.println(dB,2);
 
-    level = map(dB,55,120,0,31); // for quiet tests
+//************************************************************************************************************************************
+    level = map(dB,56,99,0,31);
+//************************************************************************************************************************************
+
     Serial.print("level = ");
-    Serial.println(level);
-    Serial.print("peak level = ");
+    Serial.print(level);
+    Serial.print(" peak level = ");
     Serial.println(peakLevel);
 
     display_on_bar(level);
