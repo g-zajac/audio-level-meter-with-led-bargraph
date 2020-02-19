@@ -1,15 +1,47 @@
 #include <Arduino.h>
 
+// #define serial_debuging
+
+#define DIP_SWITCH_TEST 2 // dip switch pin
+#define BUILDIN_LED 13
+
+// ------------------------------ External ADC ---------------------------------
+// external AD for pots, can not use analogRead with audio lib
+#include <Wire.h>
+#include <Adafruit_ADS1015.h>
+Adafruit_ADS1115 ads;  /* Use this for the 16-bit version */
+
 // ------------------------------ Neopixels ------------------------------------
 #include <FastLED.h>
-#define NUM_LEDS 24
-#define DATA_PIN 6
-CRGB leds[NUM_LEDS];
-int brightness = 10; // 0-255
+#define NUM_STRIPS 2
+#define NUM_LEDS 32
+#define DATA_PIN_EXTERNAL_LEDS 6
+#define DATA_PIN_INTERNAL_LEDS 7
 
-const int bar_brk_point_low = 12;
-const int bar_brk_point_high = 20;
-int level = 0;
+CRGB leds[NUM_LEDS];
+// add controllers for separate brightness managment
+CLEDController *controllers[NUM_STRIPS];
+
+// initial brightness before updated from pots
+uint8_t external_leds_brightness = 50; // 0-255
+uint8_t internal_leds_brightness = 50;
+
+// braking bargraph color points [green -> LOW <- orange -> HIGH <- red]
+const int bar_brk_point_low = 18;
+const int bar_brk_point_high = 28;
+
+int level = 0;            //bargraph level maped from SPL
+int levelOnBar = 0;
+int peakLevel = 0;
+int barSpeed = 10;  // 10ms?
+
+unsigned long peakFadeTime = 3*1000;  // 3 secs ?
+unsigned long peakPreviousTime = 0;
+
+// pixel defined colors
+// https://github.com/FastLED/FastLED/wiki/Pixel-reference
+// Tomato, Maroon. DarkMagenta
+#define PEAK_COLOR DarkRed;
 
 // -------------------------   A-weight coefficients ---------------------------
 // for fft 1024 the frequency resolution is 43Hz, 43 * 512 = 20016Hz
@@ -17,16 +49,11 @@ int level = 0;
 // to run the script: python a-weight/a-curve-gen.py > src/acurve.h
 #include "acurve.h"
 
-
+// --------------------------- Audio Tool --------------------------------------
 // code genrated with Audio System Design Tool for Teensy Audio Library
 // www.pjrc.com/teensy/gui
 
 #include <Audio.h>
-// NOTE are the libraries below needed?
-// #include <Wire.h>
-// #include <SPI.h>
-// #include <SD.h>
-// #include <SerialFlash.h>
 
 // GUItool: begin automatically generated code
 AudioInputAnalog         adc1;           //xy=320,151
@@ -39,37 +66,152 @@ AudioConnection          patchCord1(adc1, fft1024_1);
 // AudioConnection objects do not have any functions.
 // They are simply created in the sketch, after the audio objects define the data flow between those objects.
 
-// some variables
+// ---------------------------- Variables --------------------------------------
 float magnitude = 0;
 float dB;
 
 unsigned long previousMillis = 0;
 unsigned long samplingInterval = 100;  //in ms
 unsigned long previousMillis_monitoring = 0;
-unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
+bool test_switch_position = 0;
+
+
+// ***************************** FUNCTIONS *************************************
 
 // function displaying a level on neopixel bargraph
-void display_on_bar(int level){
-  FastLED.setBrightness(brightness);
+void display_on_bar(int newLevel){
+  // set boundaries
+  if (newLevel <0){ newLevel = 0; }
+  if (newLevel > 31) { newLevel = 31; }
 
-  for(int dot = 0; dot < level; dot++){
-    if(dot>=0 && dot < bar_brk_point_low){
-      leds[dot] = CRGB::Green;
-    }
-    else if (dot >=bar_brk_point_low && dot < bar_brk_point_high){
-      leds[dot] = CRGB::Orange;
-    }
-    else if (dot >= bar_brk_point_high){
-      leds[dot] = CRGB::Red;
-    }
-  } // end of for
+  // level going up
+  if (newLevel > levelOnBar){
+      for (int dot = levelOnBar; dot <= newLevel; dot ++){
+        if(dot>=0 && dot < bar_brk_point_low){
+          leds[dot] = CRGB::Green;
+        }
+        else if (dot >=bar_brk_point_low && dot < bar_brk_point_high){
+          leds[dot] = CRGB::Orange;
+        }
+        else if (dot >= bar_brk_point_high){
+          leds[dot] = CRGB::Red;
+        }
+        controllers[0]->showLeds(internal_leds_brightness);
+        controllers[1]->showLeds(external_leds_brightness);
+        delay(barSpeed);
+      }
+      levelOnBar = newLevel;
 
-  for(int i = level; i<=NUM_LEDS-1; i++){
-    leds[i] = CRGB::Black;
+  // level going down
+  } else if (newLevel < levelOnBar){
+    for (int dot = levelOnBar; dot >= newLevel; dot-- ){
+      leds[dot] = CRGB::Black;
+
+      // do not black the peak dot
+      leds[peakLevel] = CRGB::PEAK_COLOR;
+
+      controllers[0]->showLeds(internal_leds_brightness);
+      controllers[1]->showLeds(external_leds_brightness);
+      delay(barSpeed);
+    }
+    levelOnBar = newLevel;
+  } // end of level on bar if
+
+// -----------------  peak dot --------------------
+
+  if (newLevel >= peakLevel){
+    peakLevel = newLevel;
+
+    leds[peakLevel] = CRGB::PEAK_COLOR;
+    controllers[0]->showLeds(internal_leds_brightness);
+    controllers[1]->showLeds(external_leds_brightness);
+
+  } else {
+    unsigned long currentPeakTimer = millis();
+    if (currentPeakTimer - peakPreviousTime > peakFadeTime) {
+      peakPreviousTime = currentPeakTimer;
+
+      if (peakLevel > levelOnBar){
+        leds[peakLevel] = CRGB::Black;
+        peakLevel--;
+      }
+
+      leds[peakLevel] = CRGB::PEAK_COLOR;
+      controllers[0]->showLeds(internal_leds_brightness);
+      controllers[1]->showLeds(external_leds_brightness);
+    }
   }
-  FastLED.show();
 }
 
+void update_brightness_from_pots(){
+  int16_t pot1, pot2;
+  pot1 = ads.readADC_SingleEnded(0);
+  pot2 = ads.readADC_SingleEnded(1);
+  if (pot1 < 0){pot1 = 0;};
+  if (pot2 < 0){pot2 = 0;};
+  internal_leds_brightness = map(pot1,0,28308,0,255);
+  external_leds_brightness = map(pot2,0,28308,0,255);
+}
+
+void measure_spl(){
+  // ---------  SPL algorithm with A-weight -----------------------
+  // - apply window function (e.g. Hann or Hamming)
+  // - calculate FFT
+  // - calculate magnitude of FFT (sqrt(re*re+im*im))
+  // - convert magnitude to dB (20*log10(magnitude))
+
+  if (fft1024_1.available()) {
+    float v[512] = {0};
+    magnitude = 0;
+
+    for (int i=0; i<512; i++){
+      // The FFT1024 feature in the Teensy audio lib deals only with ordinary real numbers.
+      // Internally it's feeding audio data into the FFT as real numbers. The imaginary part of the input is set to zero.
+      // The FFT math gives a complex (real+imaginary) number output for each frequency bin.
+      // Conceptually, each frequency has an amplitude (or "magnitude" would be the more mathematically correct term)
+      // and a phase shift which is relative to the 23.2 ms time period where the analysis was done.
+      // That is *why* FFT output must be real+imaginary numbers; you simply can't represent amplitude *and* phase shift with a single number!
+      // The audio library's FFT1024 is written with the assumption you're doing music visualization or
+      // other spectral analysis where you only care about how intense each frequency bin is, but you couldn't care less
+      // about the relative timing or phase shift between each frequency bin. So it combines the real & imaginary numbers
+      // into only a single "magnitude" output for each bin. The downside is you can't get the phase info (at least not using the
+      //  simple object from the library) but the library is simpler to use for most ordinary projects where the phase info isn't important.
+      // FFT has a special property if you give it only real numbers input (the imaginary part of all 1024 inputs are zero)
+
+      v[i] = fft1024_1.read(i) * a_weighting_curve[i]; // Read frequency bins. The result is scaled so 1.0 represents a full scale sine wave.
+      // The term bins is related to the result of the FFT, where every element in the result array is a bin.
+      // One can say this is the “resolution” of the FFT. Every bin represent a frequency interval, just like a histogram.
+      // The number of bins you get is half the amount of samples spanning the frequency range from zero to half the sampling rate
+
+      magnitude = magnitude + sq(v[i]); //
+    } // end of for
+
+    magnitude = sqrt(magnitude);
+    dB = (log10f(magnitude) * 20  + 96);  // db = 20(log A/Aref)
+    // Aref refactored to semi-calibration with Archo - https://www.kickstarter.com/projects/489513890/archo-sound-measuring-device-with-arduino-and-pyth/description
+
+    #ifdef serial_debuging
+      Serial.print("db = ");
+      Serial.print(dB,2);
+    #endif
+
+//************************************************************************************************************************************
+    level = map(dB,56,99,0,31);
+//************************************************************************************************************************************
+
+    #ifdef serial_debuging
+      Serial.print(" | bargraph level = ");
+      Serial.print(level);
+      Serial.print(" | peak dot level = ");
+      Serial.println(peakLevel);
+    #endif
+
+    display_on_bar(level);
+
+  } // end of if fft
+}
+
+// *************************** END OF FUNCTIONS ********************************
 
 void setup() {
   // put your setup code here, to run once:
@@ -81,77 +223,48 @@ void setup() {
 
   // Allocate the memory for all audio connections.
   // The numberBlocks input specifies how much memory to reserve for audio data. Each block holds 128 audio samples
-  AudioMemory(10);  // tested with AudioMemoryUsageMax()
+  AudioMemory(12);  // tested with AudioMemoryUsageMax()
 
   // Configure the window algorithm to use for avoiding spectral leakage effect
   fft1024_1.windowFunction(AudioWindowHanning1024);
 
-  Serial.begin(115200);
+  #ifdef serial_debuging
+    Serial.begin(115200);
+  #endif
 
   // set up neopixels
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  controllers[0] = &FastLED.addLeds<NEOPIXEL, DATA_PIN_INTERNAL_LEDS>(leds, NUM_LEDS);
+  controllers[1] = &FastLED.addLeds<WS2811, DATA_PIN_EXTERNAL_LEDS>(leds, NUM_LEDS);
+
+  // set external ADC
+  ads.begin();
+  ads.setGain(GAIN_TWOTHIRDS); // min -2, max 28306
+
+  pinMode(DIP_SWITCH_TEST, INPUT_PULLUP);
+  pinMode(BUILDIN_LED, OUTPUT);
+
+  update_brightness_from_pots();
+
+  digitalWrite(BUILDIN_LED, HIGH);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
+  // value invertet because pullup input, HIGH state when dipswitch set @0, LOW when @ 1
+  test_switch_position = !(digitalRead(DIP_SWITCH_TEST));
 
-  unsigned long currentMillis_monitoring = millis();
-  if(currentMillis_monitoring - previousMillis_monitoring > monitoringInterval) {
-    previousMillis_monitoring = currentMillis_monitoring;
-  //monitoring system usage
-  Serial.print("Max audio mem used: ");
-  Serial.print(AudioMemoryUsageMax());
-  Serial.print(" cpu usage max: ");
-  Serial.println(AudioProcessorUsageMax());
+  if(test_switch_position == 0){
+    // normal mode
+    unsigned long currentMillis = millis();
+    if(currentMillis - previousMillis > samplingInterval) {
+      previousMillis = currentMillis;
+      update_brightness_from_pots();
+      measure_spl();
+    } // end of if millis
+  } else {
+    // test mode
+    update_brightness_from_pots();
+    display_on_bar(31);
+    controllers[0]->showLeds(internal_leds_brightness);
+    controllers[1]->showLeds(external_leds_brightness);
   }
-
-
-  // ---------  SPL algorithm with A-weight -----------------------
-  // - apply window function (e.g. Hann or Hamming)
-  // - calculate FFT
-  // - calculate magnitude of FFT (sqrt(re*re+im*im))
-  // - convert magnitude to dB (20*log10(magnitude))
-
-  unsigned long currentMillis = millis();
-  if(currentMillis - previousMillis > samplingInterval) {
-    previousMillis = currentMillis;
-
-    if (fft1024_1.available()) {
-      float v[512] = {0};
-      magnitude = 0;
-
-      for (int i=0; i<512; i++){
-        // The FFT1024 feature in the Teensy audio lib deals only with ordinary real numbers.
-        // Internally it's feeding audio data into the FFT as real numbers. The imaginary part of the input is set to zero.
-        // The FFT math gives a complex (real+imaginary) number output for each frequency bin.
-        // Conceptually, each frequency has an amplitude (or "magnitude" would be the more mathematically correct term)
-        // and a phase shift which is relative to the 23.2 ms time period where the analysis was done.
-        // That is *why* FFT output must be real+imaginary numbers; you simply can't represent amplitude *and* phase shift with a single number!
-        // The audio library's FFT1024 is written with the assumption you're doing music visualization or
-        // other spectral analysis where you only care about how intense each frequency bin is, but you couldn't care less
-        // about the relative timing or phase shift between each frequency bin. So it combines the real & imaginary numbers
-        // into only a single "magnitude" output for each bin. The downside is you can't get the phase info (at least not using the
-        //  simple object from the library) but the library is simpler to use for most ordinary projects where the phase info isn't important.
-        // FFT has a special property if you give it only real numbers input (the imaginary part of all 1024 inputs are zero)
-
-        v[i] = fft1024_1.read(i) * a_weighting_curve[i]; // Read frequency bins. The result is scaled so 1.0 represents a full scale sine wave.
-        // The term bins is related to the result of the FFT, where every element in the result array is a bin.
-        // One can say this is the “resolution” of the FFT. Every bin represent a frequency interval, just like a histogram.
-        // The number of bins you get is half the amount of samples spanning the frequency range from zero to half the sampling rate
-
-        magnitude = magnitude + sq(v[i]); //
-      } // end of for
-
-      magnitude = sqrt(magnitude);
-      dB = log10f(magnitude) * 20  + 125.05;  // db = 20(log A/Aref)
-      // TODO turn of or make conditional for producion
-      Serial.print("db = ");
-      Serial.println(dB,2);
-
-      level = map(dB,85,120,0,23);
-      display_on_bar(level);
-    } // end of if fft
-
-  } // end of if millis
-
 }
