@@ -1,6 +1,6 @@
 #include <Arduino.h>
 
-#define serial_debuging
+// #define serial_debuging
 
 #define DIP_SWITCH_TEST 2 // dip switch pin
 #define BUILDIN_LED 13
@@ -188,6 +188,7 @@ void measure_spl(){
 
     magnitude = sqrt(magnitude);
     dB = (log10f(magnitude) * 20  + 96);  // db = 20(log A/Aref)
+    // Aref refactored to semi-calibration with Archo - https://www.kickstarter.com/projects/489513890/archo-sound-measuring-device-with-arduino-and-pyth/description
 
     #ifdef serial_debuging
       Serial.print("db = ");
