@@ -31,10 +31,9 @@ const int bar_brk_point_high = 28;
 int level = 0;
 int levelOnBar = 0;
 int peakLevel = 0;
-int fadeingPeakLevel = 0;
-int barSpeed = 10;
-// bool peakFadeing = false;
-unsigned long peakFadeTime = 3*1000;
+int barSpeed = 10;  // 10ms?
+
+unsigned long peakFadeTime = 1*1000;  // 3 secs ?
 unsigned long peakPreviousTime = 0;
 #define PEAK_COLOR DarkRed;
 
@@ -69,14 +68,18 @@ unsigned long previousMillis = 0;
 unsigned long samplingInterval = 100;  //in ms
 unsigned long previousMillis_monitoring = 0;
 unsigned long monitoringInterval = 5 * 1000;  // every 5 secs
-
+// TODO remove monitoring
 bool test_switch_position = 0;
 // ***************************** FUNCTIONS *************************************
 
 
 // function displaying a level on neopixel bargraph
 void display_on_bar(int newLevel){
+  // set boundaries
+  if (newLevel <0){ newLevel = 0; }
   if (newLevel > 31) { newLevel = 31; }
+
+  Serial.print("new Level: "); Serial.println(newLevel);
 
   if (newLevel > levelOnBar){
       for (int dot = levelOnBar; dot <= newLevel; dot ++){
@@ -106,9 +109,10 @@ void display_on_bar(int newLevel){
   } // end of level on bar if
 
 // -----------------  peak dot --------------------
+
   if (newLevel >= peakLevel){
     // leds[peakLevel] = CRGB::Black;
-    peakLevel = newLevel+1;
+    peakLevel = newLevel;
     // peakFadeing = false;
     // peakPreviousTime = millis();
     leds[peakLevel] = CRGB::PEAK_COLOR;
@@ -177,14 +181,16 @@ void measure_spl(){
     } // end of for
 
     magnitude = sqrt(magnitude);
-    dB = log10f(magnitude) * 20  + 125.05;  // db = 20(log A/Aref)
+    dB = (log10f(magnitude) * 20  + 96);  // db = 20(log A/Aref)
     // TODO turn of or make conditional for producion
-    Serial.print("db = ");
-    Serial.println(dB,2);
+    // Serial.print("db = ");
+    // Serial.println(dB,2);
 
-    level = map(dB,70,122,0,31); // for quiet tests
-    Serial.print("led level = ");
+    level = map(dB,55,120,0,31); // for quiet tests
+    Serial.print("level = ");
     Serial.println(level);
+    Serial.print("peak level = ");
+    Serial.println(peakLevel);
 
     display_on_bar(level);
   } // end of if fft
