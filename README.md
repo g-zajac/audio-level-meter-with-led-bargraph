@@ -44,7 +44,7 @@ External elements (dip switch, two 10k pots, 74HCT245 etc) connected to teensy a
 * [Teensy Loader Application](https://www.pjrc.com/teensy/loader.html) - for uploading firmware to Teensy microcontroler
 
 ## Usage / Prerequisites
-Build circuit according to schematic (coming soon once prototype is tested and finalised).
+Connect breakboards modules to the Teensy as declared in code.
 
 Clone the repository to a local folder
 ```bash
