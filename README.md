@@ -48,7 +48,7 @@ Connect breakboards modules to the Teensy as declared in code.
 
 Clone the repository to a local folder
 ```bash
-git clone https://github.com/gregoryZajac/audio-level-meter-with-led-bargraph.git
+git clone https://github.com/g-zajac/audio-level-meter-with-led-bargraph.git
 ```
 enter the project folder and run command:
 ```bash
